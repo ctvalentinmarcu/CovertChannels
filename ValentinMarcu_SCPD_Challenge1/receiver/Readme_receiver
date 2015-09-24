@@ -1,0 +1,76 @@
+===== Marcu Valentin == SCPD == Readme Receiver =====
+
+   Rularea receiver-ului are 3 faze:
+
+a) make test 
+ - executata doar pe masina virtuala curenta
+ - necesita ca CPU-ul sa nu fie incarcat de executia altor procese 
+   pe cealalta masina virtuala
+ - executa o functie cpu-intensive avand ca parametru numarul de 
+   bucle ale for-ului exterior (jmax)
+ - in cpu_test.cpp este definita o constanta (MAX_DURATION) semnificand
+   durata maxim permisa de executie (in milisecunde) pentru functia
+   intensiv computationala;
+ - pornind de la un jmax de valoare mare (1024), functia este apelata
+   repetitiv (de fiecare data cu o valoare injumatatita a jmax) pana cand 
+   durata de executie (masurata cu ajutorul apelurilor gettimeofday) scade 
+   sub MAX_DURATION ms;
+ - timpul de executie (t0) si jmax-ul aferent sunt scrise in fisierul
+   input_cpu.txt (numele fisierului poate fi schimbat din Makefile)
+ - in functie de hardware, durata de executie a apelului "make test"
+   poate ajunge la 1-2 minute (pe calculatorul meu dureaza 30-40s)
+ - implementarea nu permite setari ale MAX_DURATION mai mici decat 200 ms;
+ - am obtinut rulari corecte cu valori ale MAX_DURATION mai mari de 500 ms.
+
+b) make
+ - compileaza fisierul receiver_cpu.cpp
+ - rezulta executabilul receiver_cpu
+
+c) ./receiver_cpu input_cpu.txt output_cpu.txt
+ - executabilul obtinut cu make trebuie apelat cu 2 parametri;
+ - primul parametru este numele fisierului de intrare generat la a);
+ - al doilea parametru este numele unui fisier text in care se vor scrie
+   (prin append) blocurile citite (si validate) de la sender
+
+
+   Detalii implementare:
+
+ - Bitii de 0 si 1 sunt impartiti in blocuri de dimensiune BLOCKSIZE;
+ - pentru fiecare bloc se genereaza si o suma de control de dimensiune
+   FCS = log(BLOCKSIZE);
+ - dupa trimiterea unu bloc, sender-ul asteapta (pentru un timp limitat) un semnal 
+   ACK (de un bit) din partea receiver-ului;
+ - daca ACK-ul "colectat" nu are valoarea "1", se reia trimiterea blocului;
+ - in total, trimiterea unui bloc presupune BLOCKSIZE+FCS+ACK tranzactii 
+   (receiver-ul va executa acelasi numar de tranzactii), prin urmare
+   se poate realiza sincronizarea cu receiver-ul, cu ajutorul ceasurilor 
+   sincronizate ale celor 2 masini virtuale, dupa cum urmeaza:
+ - fiecare tranzactie (de trimitere/primire a unui bit) dureaza 2*t0 ms, unde 
+   t0 este durata de executie a functiei intensiv-computationale;
+ - rezultatul fiecarui apel gettimeofday() este prelucrat astfel incat sa indice
+   un numar intreg de zecimi de secunda, semnificand timpul curent;
+ - fiecare trimitere a unui bloc incepe atunci cand timpul curent (prelucrat conform 
+   mentiunii anterioare) este un multiplu de (BLOCKSIZE+FCS+ACK)*2*t0;
+ - tranzactionarea (trimiterea/primirea) bitului i dintr-un bloc se poate realiza 
+   doar cand restul impartirii timpului curent la (BLOCKSIZE+FCS+ACK) este intre
+   i*2*t0 si (i+1)*2*t0;
+ - pentru trimiterea valorii "0" se executa apeluri usleep pana la expirarea ferestrei
+   temporale de trimitere
+ - pentru trimiterea valorii "1" se executa apeluri repetate care folosesc CPU-ul 
+   (exemplu: apeluri repetate gettimeofday()) pana la expirarea ferestrei
+   temporale de trimitere;
+ - pentru primirea unui bit (sender-ul primeste doar un bit de ACK, receiver-ul primeste
+   BLOCKSIZE+FCS biti) se masoara timpul 
+   de executie al functiei intensiv computationale si se compara cu t0 (deci cu timpul 
+   normal de executie); daca cele 2 valori difera prea mult, se inregistreaza valoarea
+   "1", altfel se inregistreaza primirea unui "0".
+
+ 
+
+
+
+
+
+
+
+

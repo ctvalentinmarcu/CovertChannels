@@ -1,0 +1,24 @@
+===== Marcu Valentin == SCPD == Readme challenge 1 =====
+
+   Rulare sender si receiver:
+
+Timeline            Sender (VM1)           Receiver (VM2)
+  0
+  |                 make test
+  |                     
+  |                                          make test
+  |
+  |       ./sender param1 param2
+  |
+  |
+  |                                ./receiver param1 param2
+  |
+  |
+  |
+  v
+
+   Pentru detalii de implementare, a se consulta:
+ - sender/Readme_sender
+ - receiver/Readme_receiver
+
+
